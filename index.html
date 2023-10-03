@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Capture and Analyze Image</title>
+</head>
+<body>
+    <button id="captureButton">Capture Image</button>
+    <img id="capturedImage" style="display: none;" />
+    <div id="results"></div>
+
+    <script>
+        const captureButton = document.getElementById('captureButton');
+        const capturedImage = document.getElementById('capturedImage');
+        const resultsDiv = document.getElementById('results');
+
+        captureButton.addEventListener('click', async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+                const mediaStreamTrack = stream.getVideoTracks()[0];
+                const imageCapture = new ImageCapture(mediaStreamTrack);
+
+                const photoBlob = await imageCapture.takePhoto();
+                capturedImage.src = URL.createObjectURL(photoBlob);
+                capturedImage.style.display = 'block';
+
+                // Send the captured image to the server.
+                sendImageToServer(photoBlob);
+            } catch (error) {
+                console.error('Error capturing image:', error);
+            }
+        });
+
+        async function sendImageToServer(imageBlob) {
+            try {
+                const formData = new FormData();
+                formData.append('image', imageBlob);
+
+                const response = await fetch('/upload', {
+                    method: 'POST',
+                    body: formData,
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    displayResults(data);
+                } else {
+                    console.error('Server returned an error.');
+                }
+            } catch (error) {
+                console.error('Error sending image to server:', error);
+            }
+        }
+
+        function displayResults(data) {
+            resultsDiv.innerHTML = `<p>Height: ${data.measurements.height} cm</p>
+                                     <p>Width: ${data.measurements.width} cm</p>`;
+        }
+    </script>
+</body>
+</html>
